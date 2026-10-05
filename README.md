@@ -9,7 +9,7 @@
 * **CUDA Toolkit:** 13.3
 * **Compute Capability:** 12.0 (`sm_120`)
 
-![](img/basline1.png)
+![](img/baseline1.png)
 
 This project implements a CUDA-based Monte Carlo path tracer with multi-bounce light transport, stochastic antialiasing, stream compaction, material sorting, refraction, depth of field, direct lighting, motion blur, and Russian roulette path termination.
 
@@ -111,7 +111,7 @@ Material sorting may become more useful in scenes with more complex material eva
 
 ### Refraction
 
-![](./img/basline1.png)
+![](./img/baseline1.png)
 ![](./img/refraction1.png)
 
 Refractive materials use Snell's law to generate transmitted rays. Schlick's approximation is used to estimate Fresnel reflectance and probabilistically choose between reflection and refraction. Total internal reflection is also handled.
@@ -135,7 +135,7 @@ No feature-specific acceleration was added for refraction. A future implementati
 
 Depth of field is implemented using a thin-lens camera model. Each primary ray samples a random position on the aperture and is redirected toward the focal plane.
 
-![](img/basline1.png)
+![](img/baseline1.png)
 ![](img/DoF1.png)
 
 The long corridor contains objects at many different distances from the camera, making the depth-of-field effect visible across the scene. Objects near the focal distance remain relatively sharp while objects farther away become blurred.
@@ -157,7 +157,7 @@ No feature-specific acceleration was added for depth of field. Possible extensio
 
 Direct lighting is implemented by randomly sampling emissive area lights and casting visibility rays from diffuse surface intersections toward the sampled positions.
 
-![](img/basline1.png)
+![](img/baseline1.png)
 ![](img/directLightingOn.png)
 
 The corridor contains multiple area lights separated along its length. Direct-light sampling allows nearby diffuse surfaces to receive light without relying only on random BSDF paths to eventually reach an emissive surface, which improves convergence in illuminated regions.
@@ -185,7 +185,7 @@ Objects can define a velocity, and their position varies according to:
 
 The same sampled time is preserved throughout the path so that primary rays, secondary rays, and shadow rays evaluate a consistent scene state.
 
-![](img/basline1.png)
+![](img/baseline1.png)
 ![](img/motionBlur1.png)
 
 Several spheres in the corridor use non-zero velocities, making their motion visible over the shutter interval.
