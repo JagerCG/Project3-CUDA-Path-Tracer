@@ -89,17 +89,16 @@ static ShadeableIntersection* dev_intersections = NULL;
 // ...
 
 static int* dev_material_keys = NULL;
-static bool enableMaterialSorting = true;
+static bool enableStreamCompaction = true;
+static bool enableMaterialSorting = false;
+static bool enableRefraction = true;
 
-static float apertureRadius = 0.9f;
-static float focalDistance = 10.5f;
+static float apertureRadius = 0.3f;
+static float focalDistance = 5.5f;
 static bool enableDepthOfField = false;
-
 static bool enableDirectLighting = false;
-
 static bool enableMotionBlur = true;
-
-static bool enableRussianRoulette = true;
+static bool enableRussianRoulette = false;
 
 void InitDataContainer(GuiDataContainer* imGuiData)
 {
@@ -544,7 +543,8 @@ __global__ void shadeMaterial(
     int geomsSize,
     glm::vec3* image,
     bool enableDirectLighting,
-    bool enableRussianRoulette)
+    bool enableRussianRoulette,
+    bool enableRefraction)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -563,6 +563,10 @@ __global__ void shadeMaterial(
     }
 
     Material material = materials[intersection.materialId];
+    if (!enableRefraction && material.hasRefractive > 0.0f)
+    {
+        material.hasRefractive = 0.0f;
+    }
 
     if (material.emittance > 0.0f)
     {
@@ -654,6 +658,20 @@ void pathtrace(uchar4* pbo, int frame, int iter)
     const int traceDepth = hst_scene->state.traceDepth;
     const Camera& cam = hst_scene->state.camera;
     const int pixelcount = cam.resolution.x * cam.resolution.y;
+
+    if (iter == 1)
+    {
+        std::cout << std::endl;
+        std::cout << "===== Benchmark Configuration =====" << std::endl;
+        std::cout << "Stream Compaction: " << (enableStreamCompaction ? "ON" : "OFF") << std::endl;
+        std::cout << "Material Sorting: " << (enableMaterialSorting ? "ON" : "OFF") << std::endl;
+        std::cout << "Refraction: " << (enableRefraction ? "ON" : "OFF") << std::endl;
+        std::cout << "Depth of Field: " << (enableDepthOfField ? "ON" : "OFF") << std::endl;
+        std::cout << "Direct Lighting: " << (enableDirectLighting ? "ON" : "OFF") << std::endl;
+        std::cout << "Motion Blur: " << (enableMotionBlur ? "ON" : "OFF") << std::endl;
+        std::cout << "Russian Roulette: " << (enableRussianRoulette ? "ON" : "OFF") << std::endl;
+        std::cout << "===================================" << std::endl;
+    }
 
     // 2D block for generating ray from camera
     const dim3 blockSize2d(8, 8);
@@ -775,7 +793,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             hst_scene->geoms.size(),
             dev_image,
             enableDirectLighting,
-            enableRussianRoulette
+            enableRussianRoulette,
+            enableRefraction
             );
         
         checkCUDAError("shade one bounce");
@@ -783,17 +802,24 @@ void pathtrace(uchar4* pbo, int frame, int iter)
 
         // TODO: should be based off stream compaction results.
 
-        thrust::device_ptr<PathSegment> pathBegin(dev_paths);
+        if (enableStreamCompaction)
+        {
+            thrust::device_ptr<PathSegment> pathBegin(dev_paths);
 
-        thrust::device_ptr<PathSegment> pathEnd =
-            thrust::remove_if(
+            thrust::device_ptr<PathSegment> pathEnd = thrust::remove_if(
                 thrust::device,
                 pathBegin,
                 pathBegin + num_paths,
                 PathTerminated()
             );
 
-        num_paths = static_cast<int>(pathEnd - pathBegin);
+            num_paths = static_cast<int>(pathEnd - pathBegin);
+        }
+
+        if (iter == 1 && enableStreamCompaction)
+        {
+            std::cout << "Bounce " << depth << ": " << num_paths << " active paths" << std::endl;
+        }
 
         if (guiData != NULL)
         {
