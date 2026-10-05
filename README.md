@@ -111,8 +111,8 @@ Material sorting may become more useful in scenes with more complex material eva
 
 ### Refraction
 
-![](img/basline.png)
-![](img/refraction.png)
+![](./img/basline.png)
+![](./img/refraction.png)
 
 Refractive materials use Snell's law to generate transmitted rays. Schlick's approximation is used to estimate Fresnel reflectance and probabilistically choose between reflection and refraction. Total internal reflection is also handled.
 
